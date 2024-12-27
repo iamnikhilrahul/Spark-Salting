@@ -1,0 +1,32 @@
+from pyspark.sql.functions import col, rand
+
+# Create customer data with Indian names
+customers = [
+    (1, "Rahul"), (2, "Priya"), (3, "Mohan"), (4, "Seema"), (5, "Akash")
+]
+
+# Create item data
+items = [
+    (1, "Phone"), (2, "Television"), (3, "Washing Machine"),
+    (4, "Refrigerator"), (5, "Watch")
+]
+
+# Create DataFrames from lists
+df_customers = spark.createDataFrame(customers, ["id", "name"])
+df_items = spark.createDataFrame(items, ["id", "product"])
+
+num_partitions = 2
+
+# Add a salting column for efficient joins
+df_customers_salted = df_customers.withColumn(
+    "salt_col", (rand() * num_partitions).cast("int")
+)
+
+# Repartition DataFrame with salting column
+df_salted_repartitioned = df_customers_salted.repartition(num_partitions, "salt_col")
+
+# Join DataFrames on "id" column
+joined_df = df_salted_repartitioned.join(df_items, on="id")
+
+# Display the joined DataFrame
+joined_df.show()
